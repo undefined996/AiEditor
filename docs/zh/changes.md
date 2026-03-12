@@ -1,5 +1,25 @@
 # AiEditor ChangeLog
 
+## v1.4.2 20260111（商业版）:
+- Fix: Corrected the comment tab name from "Comments" to "Annotations"
+- Fix: Fixed an issue where the AI ​​content area was not fully displayed when the user entered too much information during AI dialogue.
+---
+- fix: 将评论标签页名称从"评论"更正为"批注"
+- fix: 修复 AI 对话当用户输入内容过多，导致 AI 内容区域显示不全的问题
+
+
+## v1.4.1 20251120（商业版）:
+- feat: Added `commentCreateDisable` to the comment annotation feature to enable or disable the new comment creation function.
+- feat: Added `commentDeleteDisable` to the comment annotation feature to enable or disable the delete comment function.
+- feat: Added `commentUpdateDisable` to the comment annotation feature to enable or disable the update comment function.
+- feat: Added `commentReplyDisable` to the comment annotation feature to enable or disable the reply comment function.
+---
+- feat: 评论批注功能新增 commentCreateDisable，用于开启或关闭新建批注功能
+- feat: 评论批注功能新增 commentDeleteDisable，用于开启或关闭删除批注功能
+- feat: 评论批注功能新增 commentUpdateDisable，用于开启或关闭更新批注功能
+- feat: 评论批注功能新增 commentReplyDisable，用于开启或关闭回复批注功能
+
+
 
 ## v1.4.2 20251103（开源版）:
 - feat: The `@[username]` function now includes avatar configuration.
