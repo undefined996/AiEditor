@@ -4,6 +4,7 @@ import dts from 'unplugin-dts/vite'
 import packageJson from './package.json' with {type: 'json'}
 
 const dependencies = Object.keys(packageJson.dependencies)
+const bundledDependencies = new Set(['marked'])
 
 export default defineConfig({
   build: {
@@ -15,7 +16,7 @@ export default defineConfig({
     },
     rollupOptions: {
       external: (id) => dependencies.some((dependency) =>
-        id === dependency || id.startsWith(`${dependency}/`)),
+        !bundledDependencies.has(dependency) && (id === dependency || id.startsWith(`${dependency}/`))),
     },
     sourcemap: true,
   },

@@ -10,6 +10,8 @@ import {
 import {tmpdir} from 'node:os'
 import {dirname, join} from 'node:path'
 import {fileURLToPath} from 'node:url'
+import {gzipSync} from 'node:zlib'
+import {init, parse} from 'es-module-lexer'
 
 const projectRoot = dirname(dirname(fileURLToPath(import.meta.url)))
 const temporaryRoot = mkdtempSync(join(tmpdir(), 'aieditor-package-'))
@@ -36,6 +38,10 @@ try {
     'MIGRATION.md',
     'README.md',
     'assets/image/aieditor.png',
+    'dist/aieditor.umd.js',
+    'dist/aieditor.umd.js.map',
+    'dist/browser.js',
+    'dist/browser.js.map',
     'dist/index.cjs',
     'dist/index.d.cts',
     'dist/index.d.ts',
@@ -61,6 +67,21 @@ try {
     path.startsWith('dist/assets/') && /\.(woff2?|ttf|otf)$/.test(path))
   assert(fontAssets.length > 0, 'KaTeX font assets are missing from the package')
 
+  const browserBundle = readFileSync(join(projectRoot, 'dist/browser.js'), 'utf8')
+  await init
+  const moduleSpecifiers = parse(browserBundle)[0]
+    .map((entry) => entry.n ?? browserBundle.slice(entry.s, entry.e))
+  assert.deepEqual(moduleSpecifiers, [], `Browser bundle contains imports: ${moduleSpecifiers.join(', ')}`)
+
+  const umdBundle = readFileSync(join(projectRoot, 'dist/aieditor.umd.js'), 'utf8')
+  assert.match(umdBundle, /AiEditor/, 'UMD global name is missing')
+  assert.doesNotMatch(umdBundle, /\brequire\(["'](?![./])/, 'UMD bundle contains an external require')
+  const browserGzipSize = gzipSync(browserBundle).byteLength
+  const umdGzipSize = gzipSync(umdBundle).byteLength
+  assert(browserGzipSize <= 700 * 1024, `Browser ESM gzip size exceeds 700 KiB: ${browserGzipSize} bytes`)
+  assert(umdGzipSize <= 650 * 1024, `UMD gzip size exceeds 650 KiB: ${umdGzipSize} bytes`)
+  run(process.execPath, ['scripts/verify-browser-distribution.mjs'], projectRoot)
+
   const consumerRoot = join(temporaryRoot, 'consumer')
   mkdirSync(consumerRoot)
   writeFileSync(join(consumerRoot, 'package.json'), JSON.stringify({
@@ -82,6 +103,11 @@ try {
     '--input-type=module',
     '--eval',
     "const pkg = await import('aieditor'); if (typeof pkg.AiEditor !== 'function') throw new Error('ESM export is missing')",
+  ], consumerRoot)
+  run('node', [
+    '--input-type=module',
+    '--eval',
+    "const pkg = await import('aieditor/browser'); if (typeof pkg.AiEditor !== 'function') throw new Error('Browser ESM export is missing')",
   ], consumerRoot)
   run('node', [
     '--input-type=commonjs',
@@ -119,7 +145,10 @@ try {
   ))
   assert.equal(packedPackage.version, projectPackage.version)
 
-  console.log(`Verified ${packResult.filename}: ${packagePaths.length} files, ${packResult.size} bytes`)
+  console.log([
+    `Verified ${packResult.filename}: ${packagePaths.length} files, ${packResult.size} bytes`,
+    `Browser ESM gzip: ${browserGzipSize} bytes; UMD gzip: ${umdGzipSize} bytes`,
+  ].join('\n'))
 } finally {
   rmSync(temporaryRoot, {recursive: true, force: true})
 }

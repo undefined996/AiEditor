@@ -14,7 +14,21 @@ import 'aieditor/style.css'
 Imports from `aieditor/src/*` or other internal paths are unsupported.
 
 AiEditor 2 publishes ESM and CommonJS entry points. The 1.x UMD bundle and the browser-global `AiEditor`
-constructor are no longer published. Browser applications should use a bundler that can consume npm packages.
+constructor are no longer part of the default package entry. Browser applications can use a bundler that consumes
+npm packages, import the fully bundled `aieditor/browser` entry, or use the supplemental UMD file. The bundler entry
+`dist/index.js` retains bare npm imports and must not be copied directly into a static site.
+
+For a self-hosted browser ESM deployment, preserve the published paths for the script, stylesheet, and font assets:
+
+```text
+dist/browser.js
+dist/style.css
+dist/assets/*
+```
+
+The UMD file is `dist/aieditor.umd.js`. It exposes the legacy `new AiEditor(options)` constructor globally and makes
+the other runtime exports available as properties such as `AiEditor.Uploader`. Browser ESM remains the preferred
+format for modern browsers.
 
 ## Configuration mapping
 

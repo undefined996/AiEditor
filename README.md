@@ -16,6 +16,38 @@ AiEditor 基于 **Web Components** 构建，不绑定特定前端框架，可以
 
 ---
 
+## 安装与浏览器引入
+
+使用 Vite、Webpack 等构建工具时，从 npm 安装并导入公共入口：
+
+```bash
+npm install aieditor
+```
+
+```ts
+import {AiEditor} from 'aieditor'
+import 'aieditor/style.css'
+```
+
+不使用构建工具时，`aieditor/browser` 对应完全打包的 `dist/browser.js`，可以作为浏览器 ESM 直接部署；
+`dist/aieditor.umd.js` 是 AMD 和浏览器全局的补充兼容入口。自托管时应同时部署 `dist/style.css` 和
+`dist/assets/*`，并保持二者的相对目录结构。不要把包含裸 npm 导入的 `dist/index.js` 直接放进静态页面。
+Browser ESM 和 UMD 都是包含全部功能的分发包；发布验证会分别限制在 700 KiB 和 650 KiB gzip 以内。
+对首屏体积更敏感的应用应使用 npm 构建入口，由应用构建工具负责按需拆分和压缩。
+
+```html
+<link rel="stylesheet" href="/assets/aieditor/style.css">
+<script type="module">
+  import {AiEditor} from '/assets/aieditor/browser.js'
+  const editor = new AiEditor({element: '#editor'})
+</script>
+```
+
+RequireJS 页面可以通过原生 `<script type="module">` 或动态 `import()` 与 Browser ESM 共存；只有 UMD 文件
+支持 `require(['aieditor'], callback)` 这类 AMD 加载方式。
+
+---
+
 ## ✨ 为什么选择 AiEditor？
 
 ### 🤖 AI 原生

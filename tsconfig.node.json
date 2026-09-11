@@ -15,7 +15,9 @@
   },
   "include": [
     "vite.config.ts",
+    "vite.browser.config.ts",
     "vite.demo.config.ts",
+    "vite.umd.config.ts",
     "vitest.config.ts"
   ]
 }

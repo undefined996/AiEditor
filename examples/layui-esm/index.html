@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AiEditor 2 Browser ESM 与 RequireJS 共存示例</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/layui@2.9.21/dist/css/layui.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aieditor@2.0.0/dist/style.css">
+  <style>
+    body { padding: 24px; background: #f5f7fa; }
+    main { max-width: 960px; margin: 0 auto; }
+    #editor { min-height: 360px; background: #fff; }
+    .actions { display: flex; gap: 8px; margin-top: 16px; }
+    #load-status { margin: 12px 0 0; color: #4b5563; }
+    #load-status[data-state="error"] { color: #b91c1c; }
+    #content-output { margin-top: 16px; min-height: 120px; }
+  </style>
+</head>
+<body>
+  <main>
+    <div id="editor"></div>
+    <p id="load-status" role="status">正在通过 RequireJS 页面加载 Browser ESM...</p>
+    <div class="actions">
+      <button id="read-content" class="layui-btn" type="button" disabled>读取内容</button>
+      <button id="destroy-editor" class="layui-btn layui-btn-primary" type="button" disabled>销毁编辑器</button>
+      <button id="create-editor" class="layui-btn layui-btn-primary" type="button" disabled>重新创建</button>
+    </div>
+    <textarea id="content-output" class="layui-textarea" readonly></textarea>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/layui@2.9.21/dist/layui.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/requirejs@2.3.7/require.min.js"></script>
+  <script>
+    define('legacy-page', [], function () {
+      return {name: 'RequireJS legacy page'}
+    })
+
+    const status = document.querySelector('#load-status')
+
+    requirejs(['legacy-page'], function (legacyPage) {
+      void initialize(legacyPage)
+    }, showError)
+
+    async function initialize(legacyPage) {
+      try {
+        const {AiEditor} = await import('https://esm.sh/aieditor@2.0.0')
+        const readButton = document.querySelector('#read-content')
+        const destroyButton = document.querySelector('#destroy-editor')
+        const createButton = document.querySelector('#create-editor')
+        const output = document.querySelector('#content-output')
+        const objectUrls = []
+        let editor
+
+        function createEditor() {
+          editor = new AiEditor({
+            element: '#editor',
+            locale: 'zh-CN',
+            content: `<h2>${legacyPage.name}</h2><p>AiEditor 由 Browser ESM 加载。</p>`,
+            aiChat: false,
+            uploader: {
+              accept: {image: 'image/*'},
+              maxSize: {image: 10 * 1024 * 1024},
+              async upload(file, {onProgress}) {
+                onProgress(100)
+                const url = URL.createObjectURL(file)
+                objectUrls.push(url)
+                return {url, name: file.name, mimeType: file.type, size: file.size}
+              },
+            },
+          })
+          readButton.disabled = false
+          destroyButton.disabled = false
+          createButton.disabled = true
+          status.dataset.state = 'ready'
+          status.textContent = '加载成功：RequireJS 页面正在使用 AiEditor Browser ESM。'
+        }
+
+        function destroyEditor() {
+          editor?.destroy()
+          editor = undefined
+          objectUrls.splice(0).forEach((url) => URL.revokeObjectURL(url))
+          readButton.disabled = true
+          destroyButton.disabled = true
+          createButton.disabled = false
+        }
+
+        readButton.addEventListener('click', () => {
+          output.value = editor?.getHTML() ?? ''
+        })
+        destroyButton.addEventListener('click', destroyEditor)
+        createButton.addEventListener('click', createEditor)
+        window.addEventListener('beforeunload', destroyEditor, {once: true})
+
+        createEditor()
+      } catch (error) {
+        showError(error)
+      }
+    }
+
+    function showError(error) {
+      console.error(error)
+      status.dataset.state = 'error'
+      status.textContent = `加载失败：${error instanceof Error ? error.message : String(error)}`
+    }
+  </script>
+</body>
+</html>
